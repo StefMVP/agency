@@ -14,9 +14,9 @@ Start agency. Create a me.md file and make the first 10 suggestions.
 
 <br><br>
 
-![Fictional Agency card: a customer waited two months; a CSV export fix restores the missing row; expandable context, exact fix and customer reply lead to one action.](docs/readme/customer-waiting.svg)
+![Agency card: I fixed one customer issue. Noah reported a broken download button; the fix and reply are ready.](docs/readme/customer-waiting.svg)
 
-[Open the interactive example](docs/readme/customer-waiting.html) · Download the HTML and open it locally to expand the context, exact fix and reply. All details are invented. The action buttons are disabled.
+[Open the interactive example](docs/readme/customer-waiting.html) · Download the HTML and open it locally to expand the context, exact fix and reply. Noah, the complaint and the PR are fictional.
 
 <br>
 

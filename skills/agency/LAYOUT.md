@@ -6,11 +6,11 @@ The user knows only what the card shows. Make the choice obvious with as little 
 
 Start with this shape; adapt it to the decision:
 
-- **Title:** about four words. “Customer waited two months.”
-- **Context ▸:** who, where, the original message and its source.
-- **Big graphic:** before → after. “Last row lost” → “Every row exports.”
+- **Title:** short and direct. “I fixed one customer issue.”
+- **Context:** “Noah complained that the download button is not working.” Put the original message and source in an expander.
+- **Big graphic:** before → after. “Nothing happens” → “File downloads.”
 - **See the fix ▸:** the prepared change and proof. **Response to customer ▸:** the exact draft.
-- **Action:** “Merge to main and message customer.” Name both actions and show their scope. Skip and Auto-improve live below the card.
+- **Action:** “Merge PR and message customer.” Name both actions and show their scope. Skip and Auto-improve live below the card.
 
 Keep the problem, benefit and action understandable while sections are closed. Expand for detail. This is a fictional example, not a default ticket. See the [interactive example](https://github.com/browser-use/agency/blob/main/docs/readme/customer-waiting.html).
 
