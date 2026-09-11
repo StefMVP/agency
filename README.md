@@ -11,7 +11,7 @@ Set up https://github.com/browser-use/agency and start Agency.
 Create a me.md file and make the first 10 suggestions.
 ```
 
-![Agency card: I fixed one customer issue. Noah reported a broken download button; the fix and reply are ready.](docs/readme/customer-waiting.svg)
+![A stack of Agency suggestions. The front card shows a fictional fix for a customer’s broken download button.](docs/readme/customer-issue-stack.jpg)
 
 Agency finds useful work. It learns what you care about and prepares fixes, replies and ideas.
 
