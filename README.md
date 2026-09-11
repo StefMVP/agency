@@ -1,27 +1,20 @@
-<!-- Brand artwork: https://browser-use.com/lander/plates/pricing-6a7d6d40.jpg -->
-![A person looking toward vast pale architecture above orange cliffs. Browser Use brand artwork.](docs/readme/agency-header.jpg)
-
 # Agency
 
-Agency finds useful work without waiting for you to think of another prompt. It learns what you
-care about and brings you strong drafts or concrete ideas in clear visual cards. You choose an
-action; the agent carries it out.
-
-![Agency card: I fixed one customer issue. Noah reported a broken download button; the fix and reply are ready.](docs/readme/customer-waiting.svg)
-
-[Open the interactive example](docs/readme/customer-waiting.html) · Download the HTML and open it locally to expand the context, exact fix and reply. Noah, the complaint and the PR are fictional.
-
-## For humans
+## For Humans
 
 Copy this into your coding agent:
 
 ```text
-Start agency. Create a me.md file and make the first 10 suggestions.
+Set up https://github.com/browser-use/agency and start Agency.
+Create a me.md file and make the first 10 suggestions.
 ```
 
-[Setup instructions ↓](#run-locally)
+![A person looking toward vast pale architecture above orange cliffs. Browser Use brand artwork.](docs/readme/agency-header.svg)
 
-## For agents
+Agency finds useful work. It learns what you care about and prepares fixes, replies and ideas.
+You choose an action; the agent carries it out.
+
+## For Agents
 
 Read [the Agency skill](skills/agency/SKILL.md), then follow the setup below.
 The package starts empty. It includes no personal profile, tickets, customer media or credentials.
@@ -132,10 +125,13 @@ Just tell Agency what to change. It edits your local skill or layout. For exampl
 - “When the answer is uncertain, offer a few different options.”
 - “Make my cards look like Pokémon cards, with a big illustration and very little text.”
 
-The [example above](docs/readme/customer-waiting.html) shows the idea: one short title, a big
-before/after, expandable context, the exact fix, the reply and an action. The skill guides the
-agent; it chooses a layout and action labels that fit the work. Agency shows one preview before
-a broad redesign.
+The example below shows one short title, a big before/after, expandable context, the exact fix,
+the reply and an action. The skill guides the agent; it chooses a layout and action labels that
+fit the work. Agency shows one preview before a broad redesign.
+
+![Agency card: I fixed one customer issue. Noah reported a broken download button; the fix and reply are ready.](docs/readme/customer-waiting.svg)
+
+[Open the interactive example](docs/readme/customer-waiting.html) · Download the HTML and open it locally to expand the context, exact fix and reply. Noah, the complaint and the PR are fictional.
 
 The shared default is `skills/agency/LAYOUT.md`. To keep a personal version outside the shared
 skill, copy it to checkout-root `layout.local.md` and tell the agent its absolute `LAYOUT_PATH`.
