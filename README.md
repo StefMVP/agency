@@ -1,3 +1,5 @@
+![A person looking toward vast pale architecture above orange cliffs. Browser Use brand artwork.](docs/readme/agency-header.svg)
+
 # Agency
 
 ## For Humans
@@ -9,14 +11,9 @@ Set up https://github.com/browser-use/agency and start Agency.
 Create a me.md file and make the first 10 suggestions.
 ```
 
-![A person looking toward vast pale architecture above orange cliffs. Browser Use brand artwork.](docs/readme/agency-header.svg)
-
-Agency finds useful work. It learns what you care about and prepares fixes, replies and ideas.
-You choose an action; the agent carries it out.
-
 ![Agency card: I fixed one customer issue. Noah reported a broken download button; the fix and reply are ready.](docs/readme/customer-waiting.svg)
 
-[Open the interactive example](docs/readme/customer-waiting.html) · Download the HTML and open it locally to expand the context, exact fix and reply. Noah, the complaint and the PR are fictional.
+Agency finds useful work. It learns what you care about and prepares fixes, replies and ideas.
 
 ## For Agents
 
