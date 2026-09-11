@@ -34,7 +34,7 @@ function emptyBucket() {
 
 export async function GET(request: Request) {
   const db = await ensureDatabase();
-  const topicRows = await db.prepare("SELECT id, label, hint, keywords FROM topics ORDER BY position, created_at").all<{ id: string; label: string; hint: string; keywords: string }>();
+  const topicRows = await db.prepare("SELECT id, label, hint FROM topics ORDER BY position, created_at").all<{ id: string; label: string; hint: string }>();
   const topics: Topic[] = topicRows.results.map(parseTopicRow);
   const days = Math.max(1, Math.min(365, Number(new URL(request.url).searchParams.get("days")) || 30));
   const since = `-${days} days`;
@@ -98,10 +98,10 @@ export async function GET(request: Request) {
     return { ...rest, medianActiveMs: median(activeTimes), medianDoMs: median(doTimes), decided: b.do + b.change + b.no, doRate: b.do + b.change + b.no ? Math.round((100 * b.do) / (b.do + b.change + b.no)) : null };
   };
   const clusters = topics.map((c) => ({ id: c.id, label: c.label, hint: c.hint, ...finish(byCluster[c.id]), open: byCluster[c.id].open, done: byCluster[c.id].done, rejected: byCluster[c.id].rejected, donePoints: byCluster[c.id].donePoints }));
-  // What he likes: category-level do-rate over the window (min 3 decisions), best and worst.
+  // Decision rate by category over the window (at least three decisions).
   const byCategory = new Map<string, { do: number; change: number; no: number }>();
   for (const row of decisions.results) {
-    const key = row.category.split("·")[0].trim() || "Other";
+    const key = row.category.trim() || "Other";
     const c = byCategory.get(key) ?? { do: 0, change: 0, no: 0 };
     c[row.decisionAction] += 1;
     byCategory.set(key, c);

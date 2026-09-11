@@ -12,7 +12,7 @@ function slug(label: string) {
 
 export async function GET() {
   const db = await ensureDatabase();
-  const rows = await db.prepare("SELECT id, label, hint, keywords FROM topics ORDER BY position, created_at").all<{ id: string; label: string; hint: string; keywords: string }>();
+  const rows = await db.prepare("SELECT id, label, hint FROM topics ORDER BY position, created_at").all<{ id: string; label: string; hint: string }>();
   return Response.json({ topics: rows.results.map(parseTopicRow) });
 }
 

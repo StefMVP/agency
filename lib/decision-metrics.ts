@@ -34,14 +34,14 @@ export function summarizeDecisionMetrics(rows: DecisionMetricRow[]): DecisionMet
   const userRows = rows.filter((row) => row.decisionSource !== "agency");
   const decided = userRows.filter((row) => row.decisionAction);
   const activeTimes = decided
-    .map((row) => Number(row.activeMs ?? 0))
+    .map((row) => Number(row.activeMs ?? NaN))
     .filter((value) => Number.isFinite(value) && value >= 0);
   const fastWallTimes = decided
-    .map((row) => Number(row.wallMs ?? 0))
+    .map((row) => Number(row.wallMs ?? NaN))
     .filter((value) => Number.isFinite(value) && value >= 0 && value <= PARKED_DECISION_MS);
   const acceptedTimes = decided
     .filter((row) => row.decisionAction === "do")
-    .map((row) => Number(row.activeMs ?? 0))
+    .map((row) => Number(row.activeMs ?? NaN))
     .filter((value) => Number.isFinite(value) && value >= 0);
   const firstActionTimes = userRows
     .map((row) => Number(row.firstActionMs ?? NaN))
@@ -50,7 +50,8 @@ export function summarizeDecisionMetrics(rows: DecisionMetricRow[]): DecisionMet
     .map((row) => {
       const active = Number(row.activeMs ?? NaN);
       const estimate = Number(row.estimatedMs ?? NaN);
-      return Number.isFinite(active) && Number.isFinite(estimate) ? Math.abs(active - estimate) : NaN;
+      return Number.isFinite(active) && active >= 0 && Number.isFinite(estimate) && estimate > 0
+        ? Math.abs(active - estimate) : NaN;
     })
     .filter((value) => Number.isFinite(value));
 

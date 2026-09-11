@@ -67,7 +67,7 @@ export default function SettingsPage() {
       <section className="settings-block">
         <div className="settings-head">
           <h2>Topics</h2>
-          <p>Name a topic and describe what belongs there. Agency uses this to organize new cards. Existing cards stay in their topics.</p>
+          <p>Name a topic and describe it. Your agent uses these topics when making cards.</p>
         </div>
         <ul className="settings-topics">
           {topics.map((t) => (

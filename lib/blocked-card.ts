@@ -9,10 +9,6 @@ export function cardIngestMode(html: string, blockedJobId?: number, expectedVers
   return validIdentity && visiblyBlocked && !hasAction ? "blocked" : null;
 }
 
-export function needsFallbackAction(missingDo: boolean, explicitlyBlocked: boolean, jobOutcome: string | null) {
-  return missingDo && !explicitlyBlocked && jobOutcome !== "blocked";
-}
-
 // Keep the job relationship and version guard in the write itself. This cannot
 // create cards, reopen decisions, overwrite a newer job, or turn blocked into Done.
 export const BLOCKED_CARD_UPDATE_SQL = `

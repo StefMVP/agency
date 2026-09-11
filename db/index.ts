@@ -36,23 +36,15 @@ async function runMaintenance(db: ReturnType<typeof getD1>) {
     db.prepare("CREATE TABLE IF NOT EXISTS card_interactions (id INTEGER PRIMARY KEY AUTOINCREMENT, idea_id INTEGER NOT NULL, idea_version INTEGER NOT NULL, action TEXT NOT NULL, label TEXT NOT NULL DEFAULT '', active_ms INTEGER NOT NULL DEFAULT 0, wall_ms INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ideas_dedupe_key ON ideas(dedupe_key)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_ideas_status_score ON ideas(status, score DESC)"),
-    db.prepare("CREATE TABLE IF NOT EXISTS topics (id TEXT PRIMARY KEY, label TEXT NOT NULL, hint TEXT NOT NULL DEFAULT '', keywords TEXT NOT NULL DEFAULT '', position INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS topics (id TEXT PRIMARY KEY, label TEXT NOT NULL, hint TEXT NOT NULL DEFAULT '', position INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
   ]);
-  // Seed the four original topics once; after that the user and agents own the list.
-  await db.prepare(`
-    INSERT OR IGNORE INTO topics (id, label, hint, keywords, position) VALUES
-      ('growth', 'Growth', 'posts, replies, outreach, integrations', 'growth,distribution,x reply,x post,reddit,quote,social,case study,demo,launch,hackathon,integration,hype,press,newsletter,community,mention,linkedin,hn,show hn,awesome,template,default', 1),
-      ('support', 'Support', 'customer and ticket replies', 'support,pylon,customer,refund,billing,churn,outreach,onboarding,ticket,priority customer,named customer,customer support,support ops', 2),
-      ('fix', 'Fixes', 'PRs, bugs, reliability, speed', 'fix,fixes,bug,reliab,reliability,regression,merge,pr,pull request,observab,logging,alert,installer,docker,restart,performance,startup,handoff,security,oss,contributor,conflict,blocked', 3),
-      ('product', 'Product', 'features, decisions, stats, Agency', 'product,pitch,feature,decision,stats,agency,pricing,roadmap,analytics,usage,scaling user,what to build,design', 4)
-  `).run();
   const columns = await db.prepare("PRAGMA table_info(ideas)").all<{ name: string }>();
   const names = new Set(columns.results.map((column: { name: string }) => column.name));
   if (!names.has("project")) {
-    await db.prepare("ALTER TABLE ideas ADD COLUMN project TEXT NOT NULL DEFAULT 'Browser Use'").run();
+    await db.prepare("ALTER TABLE ideas ADD COLUMN project TEXT NOT NULL DEFAULT ''").run();
   }
   if (!names.has("category")) {
-    await db.prepare("ALTER TABLE ideas ADD COLUMN category TEXT NOT NULL DEFAULT 'Distribution'").run();
+    await db.prepare("ALTER TABLE ideas ADD COLUMN category TEXT NOT NULL DEFAULT ''").run();
   }
   if (!names.has("secondary_action")) {
     await db.prepare("ALTER TABLE ideas ADD COLUMN secondary_action TEXT NOT NULL DEFAULT 'See proof'").run();
@@ -129,23 +121,6 @@ async function runMaintenance(db: ReturnType<typeof getD1>) {
         ORDER BY latest.id DESC
         LIMIT 1
       ) IS NOT NULL
-  `).run();
-  // Early Agency audits used the same decision fields as real user clicks. Mark
-  // those known maintenance labels once so decision timing measures the user.
-  await db.prepare(`
-    UPDATE card_attention SET decision_source = 'agency'
-    WHERE decision_source = 'user' AND (
-      decision_label LIKE 'Agency %'
-      OR decision_label IN (
-        'Evidence gap',
-        'Archive merged PR result',
-        'Refresh stale merge card',
-        'Rejected by independent path audit',
-        'Reject unsafe merge recommendation',
-        'Reject regression-prone merge recommendation',
-        'Reject partial token-accounting fix'
-      )
-    )
   `).run();
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_agent_jobs_status_created ON agent_jobs(status, created_at)").run();
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_card_attention_decided ON card_attention(decided_at)").run();

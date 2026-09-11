@@ -1,12 +1,10 @@
 "use client";
 
-import { needsFallbackAction } from "../lib/blocked-card";
-
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cardDraftKey, keepSelectedCard, nextCardAfterRemoval } from "../lib/card-focus";
 import { cardShortcut } from "../lib/card-shortcut";
-import { DEFAULT_TOPICS, clusterForCard, type Topic } from "../lib/card-cluster";
+import { clusterForCard, type Topic } from "../lib/card-cluster";
 import { compareByImpact, impactPoints } from "../lib/rise";
 import { MAX_TASK_LENGTH, submitNewTask } from "../lib/task-submission";
 
@@ -37,9 +35,8 @@ type Idea = {
   decisionActiveMs: number | null;
   decisionWallMs: number | null;
   decisionAction: "do" | "change" | "no" | null;
-  decisionEstimateMs: number;
+  decisionEstimateMs: number | null;
   decisionEstimateReason: string;
-  decisionKind: "pr" | "message" | "visual" | "task";
 };
 
 type RadarState = {
@@ -81,7 +78,7 @@ type AttentionTracker = {
 
 const emptyState: RadarState = {
   context: null,
-  topics: DEFAULT_TOPICS,
+  topics: [],
   ideas: [],
   laneCounts: { new: 0, working: 0, done: 0 },
   jobs: { queued: 0, running: 0 },
@@ -135,16 +132,20 @@ function compareByNewest(left: Idea, right: Idea) {
   return (right.createdAt ?? "").localeCompare(left.createdAt ?? "") || right.id - left.id;
 }
 
-// Effort = the calibrated seconds the user needs to decide; ascending is "start with the quick ones".
+// Cards without an agent estimate come last.
 function compareByEffort(left: Idea, right: Idea) {
-  return left.decisionEstimateMs - right.decisionEstimateMs || right.id - left.id;
+  return (left.decisionEstimateMs ?? Infinity) - (right.decisionEstimateMs ?? Infinity) || right.id - left.id;
 }
 
 function ideasForView(ideas: Idea[], view: Idea["status"], sort: SortMode = DEFAULT_SORT) {
   const compare = sort.key === "newest" ? compareByNewest : sort.key === "effort" ? compareByEffort : compareByImpact;
-  const sorted = ideas.filter((idea) => idea.status === view).toSorted(compare);
-  // "desc" is each key's natural order (newest first, highest score first, quickest first); "asc" flips it.
-  return sort.dir === "asc" ? sorted.reverse() : sorted;
+  return ideas.filter((idea) => idea.status === view).toSorted((left, right) => {
+    if (sort.key === "effort") {
+      if (left.decisionEstimateMs === null) return right.decisionEstimateMs === null ? right.id - left.id : 1;
+      if (right.decisionEstimateMs === null) return -1;
+    }
+    return sort.dir === "asc" ? -compare(left, right) : compare(left, right);
+  });
 }
 
 function summarizeJobResult(result: string) {
@@ -158,17 +159,8 @@ function summarizeJobResult(result: string) {
   return `${clipped.slice(0, lastSpace > 120 ? lastSpace : 177)}…`;
 }
 
-function improveLabel(idea: Idea) {
-  const subject = `${idea.category} ${idea.headline} ${idea.sourceLabel}`.toLowerCase();
-  if (/\b(post|tweet|linkedin|social|thread)\b/.test(subject)) return "Improve post";
-  if (/\b(video|demo|reel|recording)\b/.test(subject)) return "Improve demo";
-  if (/\b(design|visual|image|graphic|showcase|landing|page)\b/.test(subject)) return "Improve design";
-  return "Improve card";
-}
-
 function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; actionable: boolean; onAction: (action: CardAction) => void; onInteraction: (action: string, label: string) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const dockRef = useRef<HTMLDivElement>(null);
   const renderedCardIdRef = useRef<number | null>(null);
   const onActionRef = useRef(onAction);
   const onInteractionRef = useRef(onInteraction);
@@ -180,13 +172,12 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
 
   useEffect(() => {
     const host = hostRef.current;
-    const dock = dockRef.current;
-    if (!host || !dock) return;
+    if (!host) return;
     const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
     const detailsState = renderedCardIdRef.current === idea.id
       ? new Map(Array.from(root.querySelectorAll("details"), (detail) => [detail.querySelector("summary")?.textContent, detail.open]))
       : new Map();
-    root.innerHTML = `<style>:host{display:block;font-family:inherit}*{box-sizing:border-box}[data-radar-action]{min-height:44px;cursor:pointer}[data-radar-action="open"]{display:inline-flex!important;align-items:center;gap:.38em}[data-radar-action="open"]::after{content:"↗";font-size:.8em;line-height:1;opacity:.68;transform:translateY(-.08em)}.radar-fallback-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.radar-fallback-actions{padding:0 20px 20px}.radar-fallback-actions button{min-height:40px;padding:0 16px;border:1px solid #e4e1da;border-radius:999px;background:#fff;color:#16150f;font:600 14px/1 inherit;cursor:pointer}.radar-fallback-actions button:first-child{background:#16150f;color:#fff;border-color:#16150f}</style>${idea.cardHtml}`;
+    root.innerHTML = `<style>:host{display:block;font-family:inherit}*{box-sizing:border-box}[data-radar-action]{min-height:44px;cursor:pointer}[data-radar-action="open"]{display:inline-flex!important;align-items:center;gap:.38em}[data-radar-action="open"]::after{content:"↗";font-size:.8em;line-height:1;opacity:.68;transform:translateY(-.08em)}</style>${idea.cardHtml}`;
     root.querySelectorAll('[data-radar-action="change"], [data-radar-action="no"]').forEach((button) => button.remove());
     root.querySelectorAll("details").forEach((detail) => {
       const open = detailsState.get(detail.querySelector("summary")?.textContent);
@@ -196,21 +187,6 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
     root.querySelectorAll<HTMLElement>('[data-radar-action="open"]').forEach((button) => {
       if (!button.title) button.title = "Opens a link";
     });
-    const missingDo = !root.querySelector('[data-radar-action="do"]');
-    const explicitlyBlocked = Boolean(root.querySelector('[data-radar-state="blocked"]'));
-    if (needsFallbackAction(missingDo, explicitlyBlocked, idea.jobOutcome)) {
-      const fallback = document.createElement("div");
-      fallback.className = "radar-fallback-actions";
-      const next = document.createElement("button");
-      next.textContent = "Find next step";
-      next.dataset.radarAction = "do";
-      next.dataset.radarPrompt = "Continue from this older card. Re-read the current Agency skill and use the stored full card context. Choose the most useful concrete next step, complete every safe reversible part, and return a specific replacement card with proof and a meaningful next action. Stop at the exact outside-action boundary.";
-      fallback.append(next);
-      root.append(fallback);
-    }
-    // Every action button stays inside the card HTML: no host-level dock.
-    dock.replaceChildren();
-    dock.hidden = true;
     if (!actionable) {
       root.querySelectorAll<HTMLElement>("[data-radar-action]").forEach((button) => {
         if (button.dataset.radarAction === "open") return;
@@ -238,17 +214,14 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
       });
     };
     root.addEventListener("click", click);
-    dock.addEventListener("click", click);
     return () => {
       root.removeEventListener("click", click);
-      dock.removeEventListener("click", click);
     };
   }, [actionable, idea.id, idea.cardHtml, idea.jobOutcome]);
 
   return (
     <div className="radar-agent-card">
       <div className="radar-agent-card-scroll" ref={hostRef} />
-      <div className="radar-card-action-dock" ref={dockRef} />
     </div>
   );
 }
@@ -614,7 +587,7 @@ export function Agency() {
         target,
         "change",
         "New context",
-        "The user replied to this card.",
+        "",
         note,
       );
     } finally {
@@ -630,8 +603,8 @@ export function Agency() {
       await sendToAgent(
         active,
         "change",
-        improveLabel(active),
-        "Improve the actual work behind this card, not only the card wording. Re-read the current Agency skill, the full stored card context, the user's dream, and their accepted, changed, and rejected history. Use no-ai-slop if installed. Complete useful private preparation now, including small fixes, briefs and demos, within the current brief and explicit restrictions. Keep substantial new builds scoped for approval. Show the result with fewer words and useful visuals; include the original message for replies and meaningful choices when uncertainty remains. Critique the artifact against strong comparable work, then complete every safe private revision. For visuals, designs, videos, demos, pages, or launch assets, inspect the real output at desktop and 390 px and fix weak composition, hierarchy, polish, and clarity. For launch or social copy, preserve verified facts and the user's voice, make it shorter and more human, and keep the complete exact post visible. Re-estimate the score (0-10) and effort (seconds) and push one materially better replacement under the same dedupe key. Improve never authorizes an outward action: do not send, post, publish, merge, deploy, or contact anyone, and do not return a cosmetic rewrite.",
+        "Auto-improve",
+        "Auto-improve this card using the Agency skill.",
       );
     } finally {
       setFeedbackSubmitting(false);
@@ -892,9 +865,9 @@ export function Agency() {
                 disabled={jobInFlight || feedbackSubmitting}
                 aria-keyshortcuts="I"
                 onClick={() => void submitImprove()}
-                aria-label={improveLabel(active)}
-                data-shortcut-hint={`${improveLabel(active)} · I`}
-              ><span aria-hidden="true">✦</span> {improveLabel(active)}</button>
+                aria-label="Auto-improve this card"
+                data-shortcut-hint="Auto-improve · I"
+              ><span aria-hidden="true">✦</span> Auto-improve</button>
               <button
                 className="is-send radar-shortcut-hint"
                 disabled={jobInFlight || feedbackSubmitting || !feedback.trim()}
