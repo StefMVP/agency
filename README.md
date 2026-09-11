@@ -14,9 +14,9 @@ Start agency. Create a me.md file and make the first 10 suggestions.
 
 <br><br>
 
-![Agency on localhost: a mobile pricing bug, before-and-after screenshots, and one Merge fix button](docs/readme/agency-localhost.png)
+![Fictional Agency card: a customer waited two months; a CSV export fix restores the missing row; expandable context, exact fix and customer reply lead to one action.](docs/readme/customer-waiting.svg)
 
-*Actual localhost app. Sample cards, points and reports. Before/after screenshots show a fictional pricing page; no real PR.*
+[Open the interactive example](docs/readme/customer-waiting.html) · Download the HTML and open it locally to expand the context, exact fix and reply. All details are invented. The action buttons are disabled.
 
 <br>
 
@@ -125,9 +125,17 @@ The default asks for big useful graphics, short labels, original messages, exact
 clear choices. Cards use as little text as needed; supporting evidence can expand.
 No theme selection is needed. Each card must explain the full decision on its own.
 
-Edit your installed `LAYOUT.md`, or tell Agency how you want cards to look. For example:
-"Make my cards look like Pokémon cards, with a big illustration and very little text."
-Agency updates the selected local layout and shows one preview before a broad redesign.
+Just tell Agency what to change. It edits your local skill or layout. For example:
+
+- “Make the title four words. Use bigger graphics. Put the context behind an expand button.”
+- “Show the original customer message and the exact reply before I approve.”
+- “When the answer is uncertain, offer a few different options.”
+- “Make my cards look like Pokémon cards, with a big illustration and very little text.”
+
+The [example above](docs/readme/customer-waiting.html) shows the idea: one short title, a big
+before/after, expandable context, the exact fix, the reply and an action. The skill guides the
+agent; it chooses a layout and action labels that fit the work. Agency shows one preview before
+a broad redesign.
 
 The shared default is `skills/agency/LAYOUT.md`. To keep a personal version outside the shared
 skill, copy it to checkout-root `layout.local.md` and tell the agent its absolute `LAYOUT_PATH`.
@@ -211,7 +219,9 @@ The body may vary; feedback and navigation stay consistent. New arrivals preserv
 
 A successful decision click queues work and advances the feed. View-only Open buttons stay on the
 card. A queued approval is not yet a completed ticket: the agent must execute and verify it.
-Improve and Skip do not count as Done.
+Auto-improve and Skip do not count as Done. The host supplies those two card controls;
+the agent chooses the other actions. Auto-improve queues a request to use the skill.
+The website adds no next-step buttons or fixed reply options.
 
 Hover over supported controls to see their shortcut. S skips, I improves, and left/right arrows
 navigate while you are not typing. Enter outside editable controls focuses feedback; Enter in the
@@ -316,30 +326,30 @@ Do not paint another score inside the card. High impact needs proven benefit, no
 Downscore single-source evidence; one strong reproduction does not prove a widespread problem.
 
 `effortSeconds` is the actual predicted review burden; `effortReason` explains it. Count exact copy,
-diff scope, video duration, risks and required external reading. The host may calibrate the displayed
-estimate; the rising active-time counter is separate. Never substitute agent runtime for user effort.
+diff scope, video duration, risks and required external reading. The host displays the agent’s estimate
+unchanged; missing estimates show no value. The active-time counter is separate.
 Default UI sorting is displayed score, then stored total, then ID; the user may choose effort or
 newest. Backend result order is not necessarily the user's current order.
 
 `GET /api/topics` returns topic names (`label`) and descriptions (`hint`). Reuse topics; for a
-genuinely new lane use `POST /api/topics {label,hint}`. Prefix the card category with the topic ID
-or name so it is filed there. Old matching data remains internal for compatibility; editing a
-description does not erase existing card routing. Unmatched cards stay in All.
+new lane use `POST /api/topics {label,hint}`. Set the card category to the full topic ID or
+name, for example `Support`. The agent chooses it; the app does not match keywords. New
+installs have no preset topics. Existing topics stay editable. Unmatched cards stay in All.
 Do not rename/delete the user's topics without approval.
 
 Authoritative source paths in the configured checkout: `app/api/{agent-jobs,ideas,state,topics}`,
 `lib/job-lifecycle.ts`, `lib/blocked-card.ts`, `lib/rise.ts`, `lib/card-focus.ts` and
-`scripts/{push-card,sync-me}.mjs`. Use `lib/agency-card-design.mjs` when its components fit.
+`scripts/{push-card,sync-me}.mjs`. The agent authors each card’s HTML and actions.
 
 
 ## Checks and storage
 
 ```sh
-npm test
+npm run build
 npm run lint
 ```
 
-`npm test` builds the app and runs its tests. The local `.openai/hosting.json` declares only local
+The local `.openai/hosting.json` declares only local
 bindings; it contains no shared hosting project. The included build helper is required by Vite.
 
 Each checkout has its own database, profile and assets. Keep backups private. Never commit

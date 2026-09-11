@@ -363,7 +363,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'Browser Use'"
+          "default": "''"
         },
         "category": {
           "name": "category",
@@ -371,7 +371,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'Distribution'"
+          "default": "''"
         },
         "headline": {
           "name": "headline",

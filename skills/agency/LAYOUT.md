@@ -2,6 +2,18 @@
 
 The user knows only what the card shows. Make the choice obvious with as little reading as possible.
 
+## One useful card
+
+Start with this shape; adapt it to the decision:
+
+- **Title:** about four words. “Customer waited two months.”
+- **Context ▸:** who, where, the original message and its source.
+- **Big graphic:** before → after. “Last row lost” → “Every row exports.”
+- **See the fix ▸:** the prepared change and proof. **Response to customer ▸:** the exact draft.
+- **Action:** “Merge to main and message customer.” Name both actions and show their scope. Skip and Auto-improve live below the card.
+
+Keep the problem, benefit and action understandable while sections are closed. Expand for detail. This is a fictional example, not a default ticket. See the [interactive example](https://github.com/browser-use/agency/blob/main/docs/readme/customer-waiting.html).
+
 ## Start outside, then go deeper
 
 Lead with the outcome: help a customer, promote a feature or decide on a sponsorship. Orient with a short path: `Cloud → Monitoring → [dashboard name]`. Use real names, not internal labels such as “scoped build.” Introduce people by role: “creator offering a sponsored video.” Name and link the actual source.
@@ -30,12 +42,12 @@ Put original SVG files in ignored `public/agent-assets/` and embed with `<img>` 
 
 Put the main action immediately after what it approves. Name the outcome: “Send this reply”, “Apply this wording” or “Share this demo”. Avoid “Prepare the fix” when the fix is small enough to show now. Hidden instructions must match the visible choice.
 
-More uncertainty means more meaningful choices, usually two or three. Recommend one and show each tradeoff. A limited trial or “Investigate deeper” can be useful after easy checks are done. Show trial cost, account and behavior before offering to start it. Each option needs its own action; a generic Approve cannot select between alternatives.
+More uncertainty means more meaningful choices, for example, three. Use only as many as help. Recommend one and show each tradeoff. A limited trial or “Investigate deeper” can be useful after easy checks are done. Show trial cost, account and behavior before offering to start it. Each option needs its own action; a generic Approve cannot select between alternatives.
 
 A substantial project can have a scoped Build action. A Merge needs the current-head diff: SHA, paths, context, totals and selectable additions/deletions. Name omitted generated files. UI merges need real before/after proof. Keep supporting evidence expandable; never replace the decision with a file link.
 
 ## Read it as the user
 
-Inspect the actual card at desktop and 390px with sections closed, then expanded. The first view should explain what this is about, why it matters and the proposed result. Cut text and padding before shrinking type. Keep the action close. The host owns navigation, feedback, Improve and Skip.
+Inspect the actual card at desktop and 390px with sections closed, then expanded. The first view should explain what this is about, why it matters and the proposed result. Cut text and padding before shrinking type. Keep the action close. The host owns navigation, feedback, Auto-improve and Skip.
 
 Give a reviewer only the card. Can they tell who is involved, where this happens, what improves and what each button does? Remove unnecessary words; repair missing context. Learn idea value and visual preferences separately. Keep successful design features in the user's private layout without forcing every card into the same shape. Design feedback does not approve external actions.

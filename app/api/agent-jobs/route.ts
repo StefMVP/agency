@@ -48,8 +48,7 @@ export async function GET(request: Request) {
     ORDER BY status = 'running' ASC, id ASC
     LIMIT (SELECT slots FROM capacity)
   `).bind(MAX_CONCURRENT_JOBS, leaseWindow, leaseWindow).all<{ id: number; ideaId: number } & Record<string, unknown>>();
-  // Every job carries the card's whole conversation: each earlier note in order, with what the
-  // agent did about it. A worker should never have to rediscover "don't say Desktop" from job four.
+  // Include earlier feedback and results so the agent can continue from context.
   const history = await Promise.all(jobs.results.map(async (job) => {
     const rows = await db.prepare(`
       SELECT id, action, button_label AS buttonLabel, user_feedback AS note, status, ticket_outcome AS outcome,

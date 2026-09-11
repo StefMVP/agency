@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1232" viewBox="0 0 1120 1232" role="img" aria-labelledby="title description">
+  <title id="title">Customer waited two months</title>
+  <desc id="description">Fictional Agency card. A customer has waited two months for a CSV export fix. Before, four of five rows export. After the suggested fix, all five export. Expandable sections offer the original message, the exact fix and the customer reply. A disabled example action says Merge to main and message customer. Skip and Auto-improve are shown below.</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#322c21" flood-opacity=".07"/></filter>
+    <g id="sheet" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M0 0h47l19 19v72H0z"/><path d="M47 0v19h19M15 37h36M15 52h36M15 67h36"/></g>
+    <g id="chevron" fill="none" stroke="#79756d" stroke-width="2.5" stroke-linecap="round"><path d="m0 0 6 6-6 6"/></g>
+  </defs>
+  <rect width="1120" height="1232" fill="#f1efe9"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="68" y="55" font-size="22" fill="#26291f" font-weight="750" letter-spacing="-.6">agency<tspan fill="#7160c3">✳</tspan></text>
+    <text x="1052" y="54" text-anchor="end" font-size="15" fill="#746f66">AI finds the work. You decide.</text>
+    <rect x="48" y="85" width="1024" height="1075" rx="28" fill="#fffefa" stroke="#e3ded5" filter="url(#shadow)"/>
+    <rect x="82" y="119" width="212" height="30" rx="15" fill="#f0ecfc"/>
+    <text x="188" y="139" text-anchor="middle" font-size="13" font-weight="650" fill="#61509f">SUPPORT → CSV EXPORT</text>
+    <text x="1038" y="139" text-anchor="end" font-size="13" fill="#787168">Fictional example</text>
+    <text x="82" y="222" font-size="60" font-weight="750" letter-spacing="-2.4" fill="#282820">Customer waited two months.</text>
+    <g transform="translate(84 249)">
+      <rect width="954" height="138" rx="20" fill="#f9f0e6"/>
+      <circle cx="63" cy="68" r="28" fill="none" stroke="#b56437" stroke-width="3.5"/>
+      <path d="M63 51v19l12 8" fill="none" stroke="#b56437" stroke-width="3.5" stroke-linecap="round"/>
+      <text x="108" y="88" font-size="65" letter-spacing="-2.3" font-weight="700" fill="#914d2e">2 months</text>
+      <path d="M455 34v70" stroke="#e5d7c7"/>
+      <text x="488" y="61" font-size="22" font-weight="650" fill="#614732">Still copying missing rows</text>
+      <text x="488" y="91" font-size="22" font-weight="650" fill="#614732">by hand.</text>
+    </g>
+    <text x="84" y="431" font-size="22" fill="#423e37">The proposed fix exports every row.</text>
+    <g transform="translate(84 459)">
+      <rect width="458" height="260" rx="20" fill="#fcf1ed" stroke="#f0ded6"/>
+      <text x="24" y="35" font-size="13" font-weight="750" letter-spacing="1.4" fill="#a7543e">BEFORE</text>
+      <use href="#sheet" x="31" y="64" color="#b96650"/>
+      <rect x="131" y="63" width="297" height="19" rx="5" fill="#e9c6b9"/>
+      <rect x="131" y="90" width="297" height="19" rx="5" fill="#e9c6b9"/>
+      <rect x="131" y="117" width="297" height="19" rx="5" fill="#e9c6b9"/>
+      <rect x="131" y="144" width="297" height="19" rx="5" fill="#e9c6b9"/>
+      <rect x="131" y="171" width="297" height="19" rx="5" fill="none" stroke="#bc6b54" stroke-dasharray="5 5"/>
+      <text x="24" y="231" font-size="31" font-weight="750" letter-spacing="-.8" fill="#843d2a">4 of 5 rows</text>
+      <text x="428" y="231" text-anchor="end" font-size="15" fill="#a85b45">Last row lost</text>
+    </g>
+    <g transform="translate(564 459)">
+      <rect width="474" height="260" rx="20" fill="#edf5eb" stroke="#dce8d8"/>
+      <text x="24" y="35" font-size="13" font-weight="750" letter-spacing="1.4" fill="#43734a">AFTER THE FIX</text>
+      <use href="#sheet" x="31" y="64" color="#5b8757"/>
+      <rect x="131" y="63" width="313" height="19" rx="5" fill="#bed6b5"/>
+      <rect x="131" y="90" width="313" height="19" rx="5" fill="#bed6b5"/>
+      <rect x="131" y="117" width="313" height="19" rx="5" fill="#bed6b5"/>
+      <rect x="131" y="144" width="313" height="19" rx="5" fill="#bed6b5"/>
+      <rect x="131" y="171" width="313" height="19" rx="5" fill="#629459"/>
+      <text x="24" y="231" font-size="31" font-weight="750" letter-spacing="-.8" fill="#315b35">5 of 5 rows</text>
+      <text x="444" y="231" text-anchor="end" font-size="15" fill="#547950">Nothing to copy</text>
+    </g>
+    <g fill="#3e3b35" font-size="19" font-weight="550">
+      <path d="M84 746h954M84 809h954M84 872h954M84 935h954" stroke="#e7e1d7"/>
+      <use href="#chevron" x="91" y="773"/><text x="119" y="786">Why this matters</text><text x="1034" y="786" text-anchor="end" font-size="14" font-weight="400" fill="#7e786f">Original message + context</text>
+      <use href="#chevron" x="91" y="836"/><text x="119" y="849">See the suggested fix</text><text x="1034" y="849" text-anchor="end" font-size="14" font-weight="400" fill="#7e786f">1 line</text>
+      <use href="#chevron" x="91" y="899"/><text x="119" y="912">Response to customer</text><text x="1034" y="912" text-anchor="end" font-size="14" font-weight="400" fill="#7e786f">Exact draft</text>
+    </g>
+    <rect x="84" y="960" width="954" height="70" rx="15" fill="#34372c"/>
+    <text x="561" y="1004" text-anchor="middle" font-size="25" font-weight="650" fill="#fffdf4">Merge to main and message customer</text>
+    <text x="560" y="1057" text-anchor="middle" font-size="13" fill="#878076">Example only. Nothing merges or sends.</text>
+    <path d="M48 1081h1024" stroke="#e7e1d7"/>
+    <text x="84" y="1128" font-size="18" font-weight="550" fill="#766e61">Skip</text>
+    <rect x="836" y="1098" width="202" height="43" rx="12" fill="#f0ecfc"/>
+    <text x="937" y="1126" text-anchor="middle" font-size="18" font-weight="600" fill="#645397">✳ Auto-improve</text>
+    <text x="560" y="1200" text-anchor="middle" font-size="16" fill="#797366">One card. The problem, the fix, and your next move.</text>
+  </g>
+</svg>

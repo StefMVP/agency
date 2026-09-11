@@ -9,8 +9,8 @@ export const contexts = sqliteTable("contexts", {
 
 export const ideas = sqliteTable("ideas", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  project: text("project").notNull().default("Browser Use"),
-  category: text("category").notNull().default("Distribution"),
+  project: text("project").notNull().default(""),
+  category: text("category").notNull().default(""),
   headline: text("headline").notNull(),
   whyMatters: text("why_matters").notNull(),
   impact: text("impact").notNull(),
