@@ -1,8 +1,17 @@
+<!-- Brand artwork: https://browser-use.com/lander/plates/pricing-6a7d6d40.jpg -->
+![A person looking toward vast pale architecture above orange cliffs. Browser Use brand artwork.](docs/readme/agency-header.jpg)
+
 # Agency
 
-<br>
+Agency finds useful work without waiting for you to think of another prompt. It learns what you
+care about and brings you strong drafts or concrete ideas in clear visual cards. You choose an
+action; the agent carries it out.
 
-## Human
+![Agency card: I fixed one customer issue. Noah reported a broken download button; the fix and reply are ready.](docs/readme/customer-waiting.svg)
+
+[Open the interactive example](docs/readme/customer-waiting.html) · Download the HTML and open it locally to expand the context, exact fix and reply. Noah, the complaint and the PR are fictional.
+
+## For humans
 
 Copy this into your coding agent:
 
@@ -12,21 +21,12 @@ Start agency. Create a me.md file and make the first 10 suggestions.
 
 [Setup instructions ↓](#run-locally)
 
-<br><br>
+## For agents
 
-![Agency card: I fixed one customer issue. Noah reported a broken download button; the fix and reply are ready.](docs/readme/customer-waiting.svg)
-
-[Open the interactive example](docs/readme/customer-waiting.html) · Download the HTML and open it locally to expand the context, exact fix and reply. Noah, the complaint and the PR are fictional.
-
-<br>
-
-Agency finds useful work without waiting for you to think of another prompt. It learns what you
-care about and brings you strong drafts or concrete ideas in clear visual cards. You choose an
-action; the agent carries it out.
-
+Read [the Agency skill](skills/agency/SKILL.md), then follow the setup below.
 The package starts empty. It includes no personal profile, tickets, customer media or credentials.
 
-## Run locally
+### Run locally
 
 Requires Node.js 22.13 or later and npm.
 
@@ -45,7 +45,7 @@ Keep the app on loopback. This is a trusted single-user app with unauthenticated
 multi-user service. Do not expose it with `0.0.0.0` or a public tunnel. Only ingest trusted agent
 content. A private repository does not protect an exposed server.
 
-## Install the one skill
+### Install the one skill
 
 ```sh
 node scripts/install-skill.mjs --codex
@@ -63,9 +63,9 @@ Installation grants no service access and creates no worker or schedule. Use you
 accounts. The existing standalone `no-ai-slop` skill can help with copy; it is not bundled or required
 to run this app.
 
-## Start Agency
+### Start Agency
 
-Keep one coding-agent session responsible for Agency. Use the [prompt at the top](#human).
+Keep one coding-agent session responsible for Agency. Use the [prompt above](#for-humans).
 
 Use the checkout and app URL chosen during setup. A cloud worker cannot automatically reach your
 laptop's localhost, files or signed-in browser.
@@ -100,7 +100,7 @@ runner's scheduler, reuses any matching schedule and records the real checkout, 
 and approval-policy/layout paths. It reports a meaningful result or blocker, not empty periodic updates.
 A cadence written in a profile does not itself run anything.
 
-## Profile, layout and approval settings
+### Profile, layout and approval settings
 
 | File | Purpose |
 | --- | --- |
@@ -119,7 +119,7 @@ are Git-ignored. The installer also gives you your own editable policy beside th
 The agent reads the policy; the app does not enforce it. Current explicit restrictions and runner
 rules take precedence. Do not infer broader permission from past acceptance.
 
-### Customize the layout
+#### Customize the layout
 
 The default asks for big useful graphics, short labels, original messages, exact changes and
 clear choices. Cards use as little text as needed; supporting evidence can expand.
@@ -148,7 +148,7 @@ instructions, not automatic file injection, a website setting or a CSS theme eng
 Updating the file alone does not restyle existing cards or update older installed skill copies.
 Themes change presentation, not approvals, evidence, scores or host controls.
 
-### Synchronize My dream and me.md
+#### Synchronize My dream and me.md
 
 Use `ME_PATH` for your private file and `RADAR_URL` for the running app. The default profile path
 is checkout-root `me.md`. Check both sides before selecting a direction.
@@ -168,7 +168,7 @@ An empty source cannot overwrite a nonempty profile. Legacy `--pull` (file to ap
 Synchronize before work waves and after authorized profile edits. The agent learns from evidence
 and edits the relevant profile section; it does not keep a diary or copy whole private threads.
 
-## Connect useful sources
+### Connect useful sources
 
 Start with the sources that serve your goal, not a checklist of every service.
 
@@ -187,7 +187,7 @@ returned by that integration. No invented links, password requests or bypassing 
 Naming Slack or Gmail in the dream does not connect it. Unavailable sources remain "not checked";
 work on other sources continues.
 
-### Optional Linear workflow
+#### Optional Linear workflow
 
 Agency's app uses the local database. An active agent can also use your authenticated Linear
 connector, API or CLI for shared tickets, owners and status. The short [Linear instructions](skills/agency/LINEAR.md)
@@ -199,7 +199,7 @@ visual assets remain local, so another person's Agency is not automatically the 
 shares selected material only with the authorized audience and verifies the result. Starting Agency
 or opening the website never migrates your private records to Linear by itself.
 
-### Browser setup
+#### Browser setup
 
 Use [Browser Harness](https://github.com/browser-use/browser-harness) with real local Chrome.
 Follow its [setup guide](https://github.com/browser-use/browser-harness/blob/main/install.md)
@@ -211,7 +211,7 @@ Use cloud isolation when needed, with authorized access and spend. Local logins 
 automatically; cookie or private-state uploads require approval. Follow the runtime's cleanup rules.
 Documented APIs and CLIs need no browser.
 
-## Cards and shortcuts
+### Cards and shortcuts
 
 Cards show who is affected, the problem, draft or proposed outcome and exact action. They can use real
 screenshots, short diagrams, SVG animations, messages, full colorful diffs or recorded demos.
@@ -228,13 +228,13 @@ navigate while you are not typing. Enter outside editable controls focuses feedb
 feedback field sends it, while Shift+Enter inserts a newline. No keyboard shortcut is assigned to
 New task, Start, task-composer Send or arbitrary in-card actions.
 
-## Agent API
+### Agent API
 
 Use the supplied app root and `RADAR_URL`. Inspect the current routes if this checkout differs;
 a cloud worker does not automatically have local app access. Keep the app on loopback.
 Include `x-radar-local-agent: 1` for local agent requests.
 
-### Read, coordinate and claim
+#### Read, coordinate and claim
 
 - `GET /api/agent-jobs` returns available latest jobs, not an exclusive claim. Read `cardContext`,
   `userFeedback`, `buttonLabel`, `instruction` and ordered `history`. History results are truncated
@@ -252,7 +252,7 @@ Include `x-radar-local-agent: 1` for local agent requests.
   A different title, timestamp or agent is not new work. Enrich existing New/Working cards; revive
   completed/rejected work only when fresh evidence addresses the prior outcome or rejection.
 
-### Finish every job explicitly
+#### Finish every job explicitly
 
 POST the job ID, result and one of these combinations after claiming it:
 
@@ -274,7 +274,7 @@ If work is complete, record the result without inventing a new decision. If the 
 work is blocked, replace the misleading card with the current facts and any meaningful next option.
 Never add an Acknowledge/Keep blocked no-op. Keep actual in-flight checks Working until they finish.
 
-### Push complete cards
+#### Push complete cards
 
 Write one HTML file and a metadata JSON file in the configured app. The metadata requires
 `project`, `category`, `headline`, `dedupeKey`, the four `rise` components, and `cardHtmlFile`
@@ -302,7 +302,7 @@ For a blocked replacement, first finish the latest job as failed/blocked. Then p
 score, ordering and job outcome. On 409, reread; do not guess a new version or replay approval.
 New Task snapshots may omit version, so retrieve the current card first.
 
-### HTML and controls
+#### HTML and controls
 
 Use standalone HTML/CSS and local assets. No scripts, event handlers, iframes, forms, object/embed,
 meta/base/link, inline svg/math, anchor tags, remote fonts, remote media or automatic external
@@ -317,7 +317,7 @@ may have no action under the guarded exception above. A clicked card goes Workin
 continues through New. Preserve selected ID across new cards, resorting and replacement; update its
 content directly and retain feedback/expanded details. Do not alter host sort to move attention.
 
-### Score, effort and topics
+#### Score, effort and topics
 
 The API stores `rise.reach`, `rise.impact`, `rise.strategicFit`, `rise.ease` from 0-25 and their
 0-100 sum. The host displays Score = rounded `rise.impact / 2.5` (0-10), plus estimated Effort in
@@ -342,7 +342,7 @@ Authoritative source paths in the configured checkout: `app/api/{agent-jobs,idea
 `scripts/{push-card,sync-me}.mjs`. The agent authors each card’s HTML and actions.
 
 
-## Checks and storage
+### Checks and storage
 
 ```sh
 npm run build
