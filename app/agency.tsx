@@ -346,8 +346,52 @@ function DoneList({ ideas, topics, onAction, onInteraction }: { ideas: Idea[]; t
   );
 }
 
+// Browser-tab outstanding indicator. The badge reflects the New lane needing
+// attention (not a per-card unread state), so opening a card never changes it.
+function clampLaneCount(raw: number | undefined) {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return 0;
+  return Math.max(0, Math.floor(raw));
+}
+
+// Base icon mirrors public/favicon.svg so the badge overlay keeps it visible.
+const BASE_FAVICON_SVG =
+  `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">` +
+  `<path d="M22 19.2727C22 20.779 20.779 22 19.2727 22H14.7273C13.221 22 12 20.779 12 19.2727V12H19.2727C20.779 12 22 13.221 22 14.7273V19.2727Z" fill="#68C4FF"/>` +
+  `<path d="M20 2C21.1046 2 22 2.89543 22 4V7C22 8.10457 21.1046 9 20 9H17C15.8954 9 15 8.10457 15 7V4C15 2.89543 15.8954 2 17 2H20Z" fill="#0C79D8"/>` +
+  `<path d="M7 15C8.10457 15 9 15.8954 9 17V20C9 21.1046 8.10457 22 7 22H4C2.89543 22 2 21.1046 2 20V17C2 15.8954 2.89543 15 4 15H7Z" fill="#0C79D8"/>` +
+  `<path d="M12 12H4.72727C3.22104 12 2 10.779 2 9.27273V4.72727C2 3.22104 3.22104 2 4.72727 2H9.27273C10.779 2 12 3.22104 12 4.72727V12Z" fill="#2E9EFF"/>`;
+
+function faviconDataUrl(count: number) {
+  const text = count > 99 ? "99+" : String(count);
+  // Small red pill in the top-right corner, sized to the label.
+  const fontSize = 8.5;
+  const textWidth = Math.max(8, text.length * 5 + 3);
+  const height = 9;
+  const x = 24 - textWidth - 0.75;
+  const y = 0.75;
+  const badge =
+    `<rect x="${x}" y="${y}" width="${textWidth}" height="${height}" rx="${height / 2}" fill="#E5484D"/>` +
+    `<text x="${x + textWidth / 2}" y="${y + height - 2.4}" font-size="${fontSize}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700">${text}</text>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`${BASE_FAVICON_SVG}${badge}</svg>`)}`;
+}
+
+// Find the app's favicon <link>, skipping any icon this indicator owns.
+function findFaviconLink(): HTMLLinkElement | null {
+  const head = typeof document !== "undefined" ? document.head : null;
+  if (!head) return null;
+  for (const link of head.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')) {
+    if (link.dataset?.radarFavicon !== "1") return link;
+  }
+  return null;
+}
+
 export function Agency() {
   const [data, setData] = useState<RadarState>(emptyState);
+  // Chrome state captured on mount so it can be restored on unmount.
+  const chromeTitleRef = useRef<string | null>(null);
+  const faviconLinkRef = useRef<HTMLLinkElement | null>(null);
+  const originalFaviconHrefRef = useRef<string | null>(null);
+  const createdFaviconRef = useRef<HTMLLinkElement | null>(null);
   const [view, setView] = useState<"new" | "working" | "done">("new");
   const [cluster, setCluster] = useState<string>("all");
   const [sort, setSort] = useState<SortMode>(readSortMode);
@@ -463,6 +507,64 @@ export function Agency() {
     setMessage("");
   }
   const laneCounts = data.laneCounts;
+
+  // Capture the app's original title/favicon once, restore them on unmount.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    chromeTitleRef.current = document.title;
+    const managed = findFaviconLink();
+    if (managed) {
+      faviconLinkRef.current = managed;
+      originalFaviconHrefRef.current = managed.getAttribute("href") ?? "";
+    }
+    return () => {
+      if (chromeTitleRef.current !== null) document.title = chromeTitleRef.current;
+      if (createdFaviconRef.current) {
+        createdFaviconRef.current.remove();
+        createdFaviconRef.current = null;
+      }
+      if (faviconLinkRef.current && originalFaviconHrefRef.current !== null) {
+        faviconLinkRef.current.setAttribute("href", originalFaviconHrefRef.current);
+      }
+      faviconLinkRef.current = null;
+      originalFaviconHrefRef.current = null;
+      chromeTitleRef.current = null;
+    };
+  }, []);
+
+  // One owned dynamic favicon link, kept up to date with the New lane count.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const newCount = clampLaneCount(data.laneCounts.new);
+    const workingCount = clampLaneCount(data.laneCounts.working);
+    document.title = newCount > 0 || workingCount > 0
+      ? `(${newCount} new · ${workingCount} working) Agency`
+      : "Agency";
+
+    if (newCount > 0) {
+      let managed = faviconLinkRef.current;
+      if (!managed) {
+        managed = findFaviconLink();
+        if (managed) {
+          originalFaviconHrefRef.current = managed.getAttribute("href") ?? "";
+        } else {
+          managed = document.createElement("link") as HTMLLinkElement;
+          managed.rel = "icon";
+          managed.dataset.radarFavicon = "1";
+          document.head?.appendChild(managed);
+          createdFaviconRef.current = managed;
+        }
+        faviconLinkRef.current = managed;
+      }
+      managed.setAttribute("href", faviconDataUrl(newCount));
+    } else if (createdFaviconRef.current) {
+      createdFaviconRef.current.remove();
+      createdFaviconRef.current = null;
+      faviconLinkRef.current = null;
+    } else if (faviconLinkRef.current) {
+      faviconLinkRef.current.setAttribute("href", originalFaviconHrefRef.current ?? "");
+    }
+  }, [data.laneCounts.new, data.laneCounts.working]);
   const active = selectedIdea;
   const selectedIndex = active === null ? -1 : visibleIdeas.findIndex((idea) => idea.id === active.id);
   const activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
