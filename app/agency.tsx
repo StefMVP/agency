@@ -34,7 +34,7 @@ type Idea = {
   jobUpdatedAt: string | null;
   decisionActiveMs: number | null;
   decisionWallMs: number | null;
-  decisionAction: "do" | "change" | "no" | null;
+  decisionAction: "do" | "change" | "no" | "ack" | null;
   decisionEstimateMs: number | null;
   decisionEstimateReason: string;
 };
@@ -109,6 +109,7 @@ function formatDuration(milliseconds: number | null) {
 function decisionLabel(action: Idea["decisionAction"]) {
   if (action === "do") return "Accepted";
   if (action === "no") return "Skipped";
+  if (action === "ack") return "Acknowledged";
   return "Changed";
 }
 
@@ -177,7 +178,12 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
     const detailsState = renderedCardIdRef.current === idea.id
       ? new Map(Array.from(root.querySelectorAll("details"), (detail) => [detail.querySelector("summary")?.textContent, detail.open]))
       : new Map();
-    root.innerHTML = `<style>:host{display:block;font-family:inherit}*{box-sizing:border-box}[data-radar-action]{min-height:44px;cursor:pointer}[data-radar-action="open"]{display:inline-flex!important;align-items:center;gap:.38em}[data-radar-action="open"]::after{content:"↗";font-size:.8em;line-height:1;opacity:.68;transform:translateY(-.08em)}</style>${idea.cardHtml}`;
+    root.innerHTML = `<style>:host{display:block;font-family:inherit}*{box-sizing:border-box}[data-radar-action]{min-height:44px;cursor:pointer}[data-radar-action="open"]{display:inline-flex!important;align-items:center;gap:.38em}[data-radar-action="open"]::after{content:"↗";font-size:.8em;line-height:1;opacity:.68;transform:translateY(-.08em)}</style>${idea.cardHtml}<style>.agency-note{padding:12px 18px;line-height:1.4}.agency-note .kicker{font-size:11px;letter-spacing:.65px}.agency-note h1{font-size:clamp(23px,2.4vw,29px);line-height:1.16;margin:6px 0 10px;letter-spacing:-.4px}.agency-note p{font-size:15px;margin:8px 0}.agency-note img{margin:10px 0}.agency-note details{padding:10px 0}.agency-note .limit{font-size:13px}@media(max-width:520px){.agency-note{padding:10px 12px}}</style>`;
+    const preparedIntro = root.querySelector(".agency-note > p");
+    const evidenceSummary = root.querySelector(".agency-note details > summary");
+    if (preparedIntro?.textContent?.trim().startsWith("Prepared:") && evidenceSummary) {
+      evidenceSummary.after(preparedIntro);
+    }
     root.querySelectorAll('[data-radar-action="change"], [data-radar-action="no"]').forEach((button) => button.remove());
     root.querySelectorAll("details").forEach((detail) => {
       const open = detailsState.get(detail.querySelector("summary")?.textContent);
@@ -522,7 +528,7 @@ export function Agency() {
     }).catch(() => undefined);
   }, [takePendingActiveMs]);
 
-  const sendToAgent = useCallback(async (target: Idea, action: "do" | "change" | "no", label: string, prompt = "", note = "") => {
+  const sendToAgent = useCallback(async (target: Idea, action: "do" | "change" | "no" | "ack", label: string, prompt = "", note = "") => {
     const activeMs = takePendingActiveMs(target.id, target.version);
     const response = await fetch("/api/ideas/action", {
       method: "POST",
@@ -552,7 +558,7 @@ export function Agency() {
       return next;
     });
     setMessage("");
-    const targetView = action === "no" ? view : "new";
+    const targetView = action === "no" || action === "ack" ? view : "new";
     const nextSelection = targetView === view
       ? nextCardAfterRemoval(target.id, visibleIdeas)
       : ideasForView(data.ideas, targetView, sortRef.current)[0] ?? null;
@@ -610,6 +616,16 @@ export function Agency() {
       setFeedbackSubmitting(false);
     }
   }, [active, feedbackSubmitting, jobInFlight, sendToAgent]);
+
+  const submitAcknowledge = useCallback(async () => {
+    if (!active || jobInFlight || feedbackSubmitting) return;
+    setFeedbackSubmitting(true);
+    try {
+      await sendToAgent(active, "ack", "Dismiss / ACK", "", "Useful suggestion; dismissed without requesting execution. Already handled or not needed now.");
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  }, [active, jobInFlight, feedbackSubmitting, sendToAgent]);
 
   const submitSkip = useCallback(async () => {
     if (!active || feedbackSubmitting) return;
@@ -849,7 +865,7 @@ export function Agency() {
               }}
               placeholder={jobInFlight || feedbackSubmitting
                 ? "Agency is already changing this card."
-                : "Add context or say what to change… Enter to start typing, Enter sends, Shift+Enter adds a line"}
+                : "Add context or request a change…"}
             />
             <div className="radar-inline-actions">
               <button
@@ -860,6 +876,13 @@ export function Agency() {
                 data-shortcut-hint="Skip · S"
                 onClick={() => void submitSkip()}
               ><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none"/></svg></button>
+              <button
+                className="is-ack radar-shortcut-hint"
+                disabled={jobInFlight || feedbackSubmitting}
+                aria-label="Dismiss and acknowledge this suggestion"
+                title="Useful, but already handled or not needed now. No work will be queued."
+                onClick={() => void submitAcknowledge()}
+              >Dismiss / ACK</button>
               <button
                 className="is-improve radar-shortcut-hint"
                 disabled={jobInFlight || feedbackSubmitting}
@@ -890,10 +913,7 @@ export function Agency() {
 
       {!composer && message && <div className="radar-message" role="status">{message}</div>}
 
-      <footer className="radar-footer">
-        <i /> {data.jobs.running ? `${data.jobs.running} jobs running` : data.jobs.queued ? `${data.jobs.queued} queued for your coding agent` : "No queued work"}
-        {data.decisionMetrics.tracked > 0 && <> · you decide in {formatDuration(data.decisionMetrics.medianAcceptedActiveMs)} on average</>}
-      </footer>
+
     </main>
   );
 }

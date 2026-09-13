@@ -8,7 +8,7 @@ type DecisionRow = {
   category: string;
   project: string;
   headline: string;
-  decisionAction: "do" | "change" | "no";
+  decisionAction: "do" | "change" | "no" | "ack";
   decisionLabel: string;
   activeMs: number | null;
   wallMs: number | null;
@@ -25,11 +25,11 @@ function median(values: number[]) {
 }
 
 /** Points come from finished work only: a verified completed ticket is worth its RISE score / 10.
- *  Do/Change/Skip are tracked as counts, not points, so the header and the Done list always agree. */
-export const POINTS = { do: 3, change: 1, no: -1 } as const;
+ *  Do/Change/Skip/Acknowledge are tracked as counts, not points, so the header and the Done list always agree. */
+export const POINTS = { do: 3, change: 1, no: -1, ack: 0 } as const;
 
 function emptyBucket() {
-  return { do: 0, change: 0, no: 0, parked: 0, likedPoints: 0, medianActiveMs: null as number | null, medianDoMs: null as number | null, activeTimes: [] as number[], doTimes: [] as number[] };
+  return { do: 0, change: 0, no: 0, ack: 0, parked: 0, likedPoints: 0, medianActiveMs: null as number | null, medianDoMs: null as number | null, activeTimes: [] as number[], doTimes: [] as number[] };
 }
 
 export async function GET(request: Request) {
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     SELECT a.idea_id AS ideaId, i.category, i.project, i.headline, a.decision_action AS decisionAction, a.decision_label AS decisionLabel,
            a.active_ms AS activeMs, a.wall_ms AS wallMs, a.decided_at AS decidedAt, i.score
     FROM card_attention a JOIN ideas i ON i.id = a.idea_id
-    WHERE a.decision_source = 'user' AND a.decision_action IN ('do','change','no') AND a.decided_at >= datetime('now', ?)
+    WHERE a.decision_source = 'user' AND a.decision_action IN ('do','change','no','ack') AND a.decided_at >= datetime('now', ?)
     ORDER BY a.decided_at DESC
   `).bind(since).all<DecisionRow>();
   const cards = await db.prepare(`
@@ -52,14 +52,14 @@ export async function GET(request: Request) {
     )
     SELECT i.id, i.category, i.project, i.headline, i.status, i.score, i.rise_impact AS riseImpact, latest_jobs.ticket_outcome AS outcome, i.created_at AS createdAt
     FROM ideas i LEFT JOIN latest_jobs ON latest_jobs.idea_id = i.id
-    WHERE i.card_html != '' AND i.status IN ('new','working','done','rejected')
+    WHERE i.card_html != '' AND i.status IN ('new','working','done','rejected','acknowledged')
   `).all<CardRow>();
 
-  type ClusterBucket = ReturnType<typeof emptyBucket> & { open: number; done: number; rejected: number; donePoints: number };
+  type ClusterBucket = ReturnType<typeof emptyBucket> & { open: number; done: number; rejected: number; acknowledged: number; donePoints: number };
   const byCluster: Record<string, ClusterBucket> = {};
-  const bucketFor = (id: string) => (byCluster[id] ??= { ...emptyBucket(), open: 0, done: 0, rejected: 0, donePoints: 0 });
+  const bucketFor = (id: string) => (byCluster[id] ??= { ...emptyBucket(), open: 0, done: 0, rejected: 0, acknowledged: 0, donePoints: 0 });
   for (const topic of topics) bucketFor(topic.id);
-  const byDay = new Map<string, { do: number; change: number; no: number; points: number }>();
+  const byDay = new Map<string, { do: number; change: number; no: number; ack: number; points: number }>();
   const total = emptyBucket();
   for (const row of decisions.results) {
     const bucket = bucketFor(clusterForCard(row, topics));
@@ -75,12 +75,13 @@ export async function GET(request: Request) {
       }
     }
     const day = row.decidedAt.slice(0, 10);
-    const d = byDay.get(day) ?? { do: 0, change: 0, no: 0, points: 0 };
+    const d = byDay.get(day) ?? { do: 0, change: 0, no: 0, ack: 0, points: 0 };
     d[row.decisionAction] += 1;
     d.points += POINTS[row.decisionAction];
     byDay.set(day, d);
   }
   let donePoints = 0;
+  let acknowledged = 0;
   for (const card of cards.results) {
     const bucket = bucketFor(clusterForCard(card, topics));
     if (card.status === "done") {
@@ -91,16 +92,21 @@ export async function GET(request: Request) {
         donePoints += pts;
       }
     } else if (card.status === "rejected") bucket.rejected += 1;
-    else bucket.open += 1;
+    else if (card.status === "acknowledged") {
+      bucket.acknowledged += 1;
+      acknowledged += 1;
+    } else bucket.open += 1;
   }
   const finish = (b: ReturnType<typeof emptyBucket>) => {
     const { activeTimes, doTimes, ...rest } = b;
-    return { ...rest, medianActiveMs: median(activeTimes), medianDoMs: median(doTimes), decided: b.do + b.change + b.no, doRate: b.do + b.change + b.no ? Math.round((100 * b.do) / (b.do + b.change + b.no)) : null };
+    return { ...rest, medianActiveMs: median(activeTimes), medianDoMs: median(doTimes), decided: b.do + b.change + b.no + b.ack, doRate: b.do + b.change + b.no ? Math.round((100 * b.do) / (b.do + b.change + b.no)) : null };
   };
-  const clusters = topics.map((c) => ({ id: c.id, label: c.label, hint: c.hint, ...finish(byCluster[c.id]), open: byCluster[c.id].open, done: byCluster[c.id].done, rejected: byCluster[c.id].rejected, donePoints: byCluster[c.id].donePoints }));
-  // Decision rate by category over the window (at least three decisions).
+  const clusters = topics.map((c) => ({ id: c.id, label: c.label, hint: c.hint, ...finish(byCluster[c.id]), open: byCluster[c.id].open, done: byCluster[c.id].done, rejected: byCluster[c.id].rejected, acknowledged: byCluster[c.id].acknowledged, donePoints: byCluster[c.id].donePoints }));
+  // Acknowledgment records timing and attention without treating it as a negative preference.
+  // Decision rate by category uses at least three Do/Change/Skip decisions.
   const byCategory = new Map<string, { do: number; change: number; no: number }>();
   for (const row of decisions.results) {
+    if (row.decisionAction === "ack") continue;
     const key = row.category.trim() || "Other";
     const c = byCategory.get(key) ?? { do: 0, change: 0, no: 0 };
     c[row.decisionAction] += 1;
@@ -113,7 +119,7 @@ export async function GET(request: Request) {
   const recent = decisions.results.slice(0, 40).map((r) => ({ ideaId: r.ideaId, headline: r.headline, action: r.decisionAction, activeMs: r.activeMs, decidedAt: r.decidedAt, cluster: clusterForCard(r, topics) }));
   return Response.json({
     days,
-    total: { ...finish(total), likedPoints: total.likedPoints, donePoints, points: donePoints },
+    total: { ...finish(total), acknowledged, likedPoints: total.likedPoints, donePoints, points: donePoints },
     clusters,
     categories,
     days_series: [...byDay.entries()].toSorted(([a], [b]) => (a < b ? -1 : 1)).map(([day, d]) => ({ day, ...d })),

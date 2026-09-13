@@ -14,6 +14,7 @@ export type DecisionMetrics = {
   accepted: number;
   changed: number;
   rejected: number;
+  acknowledged: number;
   parked: number;
   medianActiveMs: number | null;
   medianAcceptedActiveMs: number | null;
@@ -60,6 +61,7 @@ export function summarizeDecisionMetrics(rows: DecisionMetricRow[]): DecisionMet
     accepted: decided.filter((row) => row.decisionAction === "do").length,
     changed: decided.filter((row) => row.decisionAction === "change").length,
     rejected: decided.filter((row) => row.decisionAction === "no").length,
+    acknowledged: decided.filter((row) => row.decisionAction === "ack").length,
     parked: decided.filter((row) => Number(row.wallMs ?? 0) > PARKED_DECISION_MS).length,
     medianActiveMs: median(activeTimes),
     medianAcceptedActiveMs: median(acceptedTimes),
