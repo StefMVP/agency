@@ -2,7 +2,9 @@
 // to the existing card for its latest, already-terminal blocked job.
 export function cardIngestMode(html: string, blockedJobId?: number, expectedVersion?: number) {
   const hasAction = /data-radar-action\s*=\s*["']do["']/i.test(html);
-  if (blockedJobId === undefined) return hasAction ? "actionable" : null;
+  const hasReadyResult = /data-radar-state\s*=\s*["']ready["']/i.test(html)
+    && /<button\b[^>]*data-radar-action\s*=\s*["']open["'][^>]*data-radar-url\s*=\s*["']\/agent-assets\/useful-work\/[a-f0-9]{64}\.html["'][^>]*>/i.test(html);
+  if (blockedJobId === undefined) return hasAction || hasReadyResult ? "actionable" : null;
   const validIdentity = Number.isSafeInteger(blockedJobId) && blockedJobId > 0
     && Number.isSafeInteger(expectedVersion) && Number(expectedVersion) > 0;
   const visiblyBlocked = /data-radar-state\s*=\s*["']blocked["']/i.test(html);
