@@ -28,6 +28,8 @@ export async function GET(request: Request) {
       SELECT MAX(0, ? - COUNT(*)) AS slots
       FROM latest_jobs
       WHERE status = 'running' AND updated_at > datetime('now', ?)
+        AND EXISTS (SELECT 1 FROM ideas WHERE ideas.id = latest_jobs.idea_id
+                    AND ideas.status IN ('new', 'working'))
     )
     SELECT
       id,
@@ -43,8 +45,12 @@ export async function GET(request: Request) {
       created_at AS createdAt,
       updated_at AS updatedAt
     FROM latest_jobs
-    WHERE status = 'queued'
-      OR (status = 'running' AND updated_at <= datetime('now', ?))
+    WHERE (status = 'queued'
+      OR (status = 'running' AND updated_at <= datetime('now', ?)))
+      AND EXISTS (
+        SELECT 1 FROM ideas WHERE ideas.id = latest_jobs.idea_id
+          AND ideas.status IN ('new', 'working')
+      )
     ORDER BY status = 'running' ASC, id ASC
     LIMIT (SELECT slots FROM capacity)
   `).bind(MAX_CONCURRENT_JOBS, leaseWindow, leaseWindow).all<{ id: number; ideaId: number } & Record<string, unknown>>();
@@ -75,6 +81,27 @@ export async function POST(request: Request) {
   }
   if (!canUpdateJob(job.status, payload.status!)) {
     return Response.json({ error: `Job is already ${job.status}` }, { status: 409 });
+  }
+  if (payload.status === "running") {
+    // Claim only the currently approved click. The predicate is in the write,
+    // so a newer click between the read above and this claim cannot execute stale work.
+    const claimed = await db.prepare(`
+      UPDATE agent_jobs SET status = 'running', result = '', ticket_outcome = NULL,
+                            updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND status IN ('queued', 'running')
+        AND NOT EXISTS (
+          SELECT 1 FROM agent_jobs newer
+          WHERE newer.idea_id = agent_jobs.idea_id AND newer.id > agent_jobs.id
+        )
+        AND EXISTS (
+          SELECT 1 FROM ideas WHERE ideas.id = agent_jobs.idea_id
+            AND ideas.status IN ('new', 'working')
+        )
+    `).bind(payload.id).run();
+    if (claimed.meta.changes !== 1) {
+      return Response.json({ error: "Approval was superseded or canceled" }, { status: 409 });
+    }
+    return Response.json({ ok: true, ticketOutcome: null, ideaStatus: "working" });
   }
   const ticketOutcome = resolveTicketOutcome(payload.status!, payload.ticketOutcome);
   const updates = [

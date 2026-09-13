@@ -197,6 +197,7 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
       root.querySelectorAll<HTMLElement>("[data-radar-action]").forEach((button) => {
         if (button.dataset.radarAction === "open") return;
         button.setAttribute("aria-disabled", "true");
+        if (button instanceof HTMLButtonElement) button.disabled = true;
         button.style.pointerEvents = "none";
         button.style.opacity = "0.5";
       });
@@ -230,6 +231,32 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
       <div className="radar-agent-card-scroll" ref={hostRef} />
     </div>
   );
+}
+
+
+function SourceLink({ idea }: { idea: Idea | null }) {
+  if (!idea?.sourceUrl) return null;
+  let url: URL;
+  try {
+    url = new URL(idea.sourceUrl);
+  } catch {
+    return null;
+  }
+  if (!["http:", "https:"].includes(url.protocol)) return null;
+  return <a className="radar-source-link" href={url.href} target="_blank" rel="noopener noreferrer">{idea.sourceLabel || "Source"} · source post ↗</a>;
+}
+
+
+function JobResultNotice({ idea }: { idea: Idea | null }) {
+  const blocked = idea?.jobStatus === "failed" || idea?.jobOutcome === "blocked";
+  const review = idea?.jobStatus === "done" && idea?.jobOutcome === "review";
+  if (!blocked && !review) return null;
+  return <aside className="radar-blocked-result" role="status">
+    <strong>{blocked ? "Needs attention" : "Ready for review"}</strong>
+    <p>{summarizeJobResult(idea?.jobResult || "This attempt did not complete.")}</p>
+    <details><summary>Result and saved evidence</summary><div className="radar-job-result-text" role="textbox" aria-readonly="true" tabIndex={0} aria-label="Full result and saved evidence">{idea?.jobResult || "No further result was recorded."}</div></details>
+    <p>{blocked ? "Add a correction below or use Auto-improve to request a new review." : "Read the prepared result above. Add a correction below, or dismiss when handled."}</p>
+  </aside>;
 }
 
 
@@ -451,6 +478,8 @@ export function Agency() {
     label: activeLiveState.jobLabel?.trim() ?? "",
   } : null;
   const jobInFlight = activeJob?.status === "queued" || activeJob?.status === "running";
+  const jobBlocked = activeLiveState?.jobStatus === "failed" || activeLiveState?.jobOutcome === "blocked";
+  const jobReadyForReview = activeLiveState?.jobStatus === "done" && activeLiveState?.jobOutcome === "review";
   const attentionIdeaId = active?.id ?? null;
   const attentionIdeaVersion = active?.version ?? null;
   const attentionDecisionAction = active?.decisionAction ?? null;
@@ -847,8 +876,10 @@ export function Agency() {
       ) : active ? (
         <section className="radar-workspace">
           {jobInFlight && <span className="radar-working" role="status">Agency is working on this card</span>}
+          <JobResultNotice idea={activeLiveState} />
+          <SourceLink idea={activeLiveState} />
           <section className="radar-card-host">
-            <AgentCard idea={active} actionable={!jobInFlight} onAction={handleCardAction} onInteraction={(action, label) => recordCardInteraction(active, action, label)} />
+            <AgentCard idea={active} actionable={!jobInFlight && !jobBlocked && !jobReadyForReview} onAction={handleCardAction} onInteraction={(action, label) => recordCardInteraction(active, action, label)} />
           </section>
 
           <section className="radar-inline-change">

@@ -326,3 +326,10 @@ li.is-open .radar-done-row { border-color: var(--line-2); border-bottom-left-rad
   .radar-card-chips, .radar-scores { height: 32px; }
   .radar-card-chips > span { height: 26px; padding: 0 8px; }
 }
+
+.radar-blocked-result { flex: 0 0 auto; padding: 10px 14px; margin-bottom: 8px; border: 1px solid #dec39b; border-radius: 12px; background: #fff8ed; font-size: .82rem; overflow-wrap: anywhere; }
+.radar-blocked-result p { margin: 5px 0; }
+.radar-blocked-result summary { cursor: pointer; }
+.radar-job-result-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; font: inherit; user-select: text; }
+
+.radar-source-link { flex: 0 0 auto; margin: 0 18px 4px; width: fit-content; font-size: .76rem; color: var(--muted); text-decoration: underline; }
