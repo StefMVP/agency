@@ -34,7 +34,7 @@ type Idea = {
   jobUpdatedAt: string | null;
   decisionActiveMs: number | null;
   decisionWallMs: number | null;
-  decisionAction: "do" | "change" | "no" | null;
+  decisionAction: "do" | "change" | "no" | "ack" | null;
   decisionEstimateMs: number | null;
   decisionEstimateReason: string;
 };
@@ -109,6 +109,7 @@ function formatDuration(milliseconds: number | null) {
 function decisionLabel(action: Idea["decisionAction"]) {
   if (action === "do") return "Accepted";
   if (action === "no") return "Skipped";
+  if (action === "ack") return "Acknowledged";
   return "Changed";
 }
 
@@ -177,7 +178,12 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
     const detailsState = renderedCardIdRef.current === idea.id
       ? new Map(Array.from(root.querySelectorAll("details"), (detail) => [detail.querySelector("summary")?.textContent, detail.open]))
       : new Map();
-    root.innerHTML = `<style>:host{display:block;font-family:inherit}*{box-sizing:border-box}[data-radar-action]{min-height:44px;cursor:pointer}[data-radar-action="open"]{display:inline-flex!important;align-items:center;gap:.38em}[data-radar-action="open"]::after{content:"↗";font-size:.8em;line-height:1;opacity:.68;transform:translateY(-.08em)}</style>${idea.cardHtml}`;
+    root.innerHTML = `<style>:host{display:block;font-family:inherit}*{box-sizing:border-box}[data-radar-action]{min-height:44px;cursor:pointer}[data-radar-action="open"]{display:inline-flex!important;align-items:center;gap:.38em}[data-radar-action="open"]::after{content:"↗";font-size:.8em;line-height:1;opacity:.68;transform:translateY(-.08em)}</style>${idea.cardHtml}<style>.agency-note{padding:12px 18px;line-height:1.4}.agency-note .kicker{font-size:11px;letter-spacing:.65px}.agency-note h1{font-size:clamp(23px,2.4vw,29px);line-height:1.16;margin:6px 0 10px;letter-spacing:-.4px}.agency-note p{font-size:15px;margin:8px 0}.agency-note img{margin:10px 0}.agency-note details{padding:10px 0}.agency-note .limit{font-size:13px}@media(max-width:520px){.agency-note{padding:10px 12px}}</style>`;
+    const preparedIntro = root.querySelector(".agency-note > p");
+    const evidenceSummary = root.querySelector(".agency-note details > summary");
+    if (preparedIntro?.textContent?.trim().startsWith("Prepared:") && evidenceSummary) {
+      evidenceSummary.after(preparedIntro);
+    }
     root.querySelectorAll('[data-radar-action="change"], [data-radar-action="no"]').forEach((button) => button.remove());
     root.querySelectorAll("details").forEach((detail) => {
       const open = detailsState.get(detail.querySelector("summary")?.textContent);
@@ -191,6 +197,7 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
       root.querySelectorAll<HTMLElement>("[data-radar-action]").forEach((button) => {
         if (button.dataset.radarAction === "open") return;
         button.setAttribute("aria-disabled", "true");
+        if (button instanceof HTMLButtonElement) button.disabled = true;
         button.style.pointerEvents = "none";
         button.style.opacity = "0.5";
       });
@@ -224,6 +231,32 @@ function AgentCard({ idea, actionable, onAction, onInteraction }: { idea: Idea; 
       <div className="radar-agent-card-scroll" ref={hostRef} />
     </div>
   );
+}
+
+
+function SourceLink({ idea }: { idea: Idea | null }) {
+  if (!idea?.sourceUrl) return null;
+  let url: URL;
+  try {
+    url = new URL(idea.sourceUrl);
+  } catch {
+    return null;
+  }
+  if (!["http:", "https:"].includes(url.protocol)) return null;
+  return <a className="radar-source-link" href={url.href} target="_blank" rel="noopener noreferrer">{idea.sourceLabel || "Source"} · source post ↗</a>;
+}
+
+
+function JobResultNotice({ idea }: { idea: Idea | null }) {
+  const blocked = idea?.jobStatus === "failed" || idea?.jobOutcome === "blocked";
+  const review = idea?.jobStatus === "done" && idea?.jobOutcome === "review";
+  if (!blocked && !review) return null;
+  return <aside className="radar-blocked-result" role="status">
+    <strong>{blocked ? "Needs attention" : "Ready for review"}</strong>
+    <p>{summarizeJobResult(idea?.jobResult || "This attempt did not complete.")}</p>
+    <details><summary>Result and saved evidence</summary><div className="radar-job-result-text" role="textbox" aria-readonly="true" tabIndex={0} aria-label="Full result and saved evidence">{idea?.jobResult || "No further result was recorded."}</div></details>
+    <p>{blocked ? "Add a correction below or use Auto-improve to request a new review." : "Read the prepared result above. Add a correction below, or dismiss when handled."}</p>
+  </aside>;
 }
 
 
@@ -313,8 +346,52 @@ function DoneList({ ideas, topics, onAction, onInteraction }: { ideas: Idea[]; t
   );
 }
 
+// Browser-tab outstanding indicator. The badge reflects the New lane needing
+// attention (not a per-card unread state), so opening a card never changes it.
+function clampLaneCount(raw: number | undefined) {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return 0;
+  return Math.max(0, Math.floor(raw));
+}
+
+// Base icon mirrors public/favicon.svg so the badge overlay keeps it visible.
+const BASE_FAVICON_SVG =
+  `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">` +
+  `<path d="M22 19.2727C22 20.779 20.779 22 19.2727 22H14.7273C13.221 22 12 20.779 12 19.2727V12H19.2727C20.779 12 22 13.221 22 14.7273V19.2727Z" fill="#68C4FF"/>` +
+  `<path d="M20 2C21.1046 2 22 2.89543 22 4V7C22 8.10457 21.1046 9 20 9H17C15.8954 9 15 8.10457 15 7V4C15 2.89543 15.8954 2 17 2H20Z" fill="#0C79D8"/>` +
+  `<path d="M7 15C8.10457 15 9 15.8954 9 17V20C9 21.1046 8.10457 22 7 22H4C2.89543 22 2 21.1046 2 20V17C2 15.8954 2.89543 15 4 15H7Z" fill="#0C79D8"/>` +
+  `<path d="M12 12H4.72727C3.22104 12 2 10.779 2 9.27273V4.72727C2 3.22104 3.22104 2 4.72727 2H9.27273C10.779 2 12 3.22104 12 4.72727V12Z" fill="#2E9EFF"/>`;
+
+function faviconDataUrl(count: number) {
+  const text = count > 99 ? "99+" : String(count);
+  // Small red pill in the top-right corner, sized to the label.
+  const fontSize = 8.5;
+  const textWidth = Math.max(8, text.length * 5 + 3);
+  const height = 9;
+  const x = 24 - textWidth - 0.75;
+  const y = 0.75;
+  const badge =
+    `<rect x="${x}" y="${y}" width="${textWidth}" height="${height}" rx="${height / 2}" fill="#E5484D"/>` +
+    `<text x="${x + textWidth / 2}" y="${y + height - 2.4}" font-size="${fontSize}" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700">${text}</text>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`${BASE_FAVICON_SVG}${badge}</svg>`)}`;
+}
+
+// Find the app's favicon <link>, skipping any icon this indicator owns.
+function findFaviconLink(): HTMLLinkElement | null {
+  const head = typeof document !== "undefined" ? document.head : null;
+  if (!head) return null;
+  for (const link of head.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')) {
+    if (link.dataset?.radarFavicon !== "1") return link;
+  }
+  return null;
+}
+
 export function Agency() {
   const [data, setData] = useState<RadarState>(emptyState);
+  // Chrome state captured on mount so it can be restored on unmount.
+  const chromeTitleRef = useRef<string | null>(null);
+  const faviconLinkRef = useRef<HTMLLinkElement | null>(null);
+  const originalFaviconHrefRef = useRef<string | null>(null);
+  const createdFaviconRef = useRef<HTMLLinkElement | null>(null);
   const [view, setView] = useState<"new" | "working" | "done">("new");
   const [cluster, setCluster] = useState<string>("all");
   const [sort, setSort] = useState<SortMode>(readSortMode);
@@ -430,6 +507,64 @@ export function Agency() {
     setMessage("");
   }
   const laneCounts = data.laneCounts;
+
+  // Capture the app's original title/favicon once, restore them on unmount.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    chromeTitleRef.current = document.title;
+    const managed = findFaviconLink();
+    if (managed) {
+      faviconLinkRef.current = managed;
+      originalFaviconHrefRef.current = managed.getAttribute("href") ?? "";
+    }
+    return () => {
+      if (chromeTitleRef.current !== null) document.title = chromeTitleRef.current;
+      if (createdFaviconRef.current) {
+        createdFaviconRef.current.remove();
+        createdFaviconRef.current = null;
+      }
+      if (faviconLinkRef.current && originalFaviconHrefRef.current !== null) {
+        faviconLinkRef.current.setAttribute("href", originalFaviconHrefRef.current);
+      }
+      faviconLinkRef.current = null;
+      originalFaviconHrefRef.current = null;
+      chromeTitleRef.current = null;
+    };
+  }, []);
+
+  // One owned dynamic favicon link, kept up to date with the New lane count.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const newCount = clampLaneCount(data.laneCounts.new);
+    const workingCount = clampLaneCount(data.laneCounts.working);
+    document.title = newCount > 0 || workingCount > 0
+      ? `(${newCount} new · ${workingCount} working) Agency`
+      : "Agency";
+
+    if (newCount > 0) {
+      let managed = faviconLinkRef.current;
+      if (!managed) {
+        managed = findFaviconLink();
+        if (managed) {
+          originalFaviconHrefRef.current = managed.getAttribute("href") ?? "";
+        } else {
+          managed = document.createElement("link") as HTMLLinkElement;
+          managed.rel = "icon";
+          managed.dataset.radarFavicon = "1";
+          document.head?.appendChild(managed);
+          createdFaviconRef.current = managed;
+        }
+        faviconLinkRef.current = managed;
+      }
+      managed.setAttribute("href", faviconDataUrl(newCount));
+    } else if (createdFaviconRef.current) {
+      createdFaviconRef.current.remove();
+      createdFaviconRef.current = null;
+      faviconLinkRef.current = null;
+    } else if (faviconLinkRef.current) {
+      faviconLinkRef.current.setAttribute("href", originalFaviconHrefRef.current ?? "");
+    }
+  }, [data.laneCounts.new, data.laneCounts.working]);
   const active = selectedIdea;
   const selectedIndex = active === null ? -1 : visibleIdeas.findIndex((idea) => idea.id === active.id);
   const activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
@@ -445,6 +580,8 @@ export function Agency() {
     label: activeLiveState.jobLabel?.trim() ?? "",
   } : null;
   const jobInFlight = activeJob?.status === "queued" || activeJob?.status === "running";
+  const jobBlocked = activeLiveState?.jobStatus === "failed" || activeLiveState?.jobOutcome === "blocked";
+  const jobReadyForReview = activeLiveState?.jobStatus === "done" && activeLiveState?.jobOutcome === "review";
   const attentionIdeaId = active?.id ?? null;
   const attentionIdeaVersion = active?.version ?? null;
   const attentionDecisionAction = active?.decisionAction ?? null;
@@ -522,7 +659,7 @@ export function Agency() {
     }).catch(() => undefined);
   }, [takePendingActiveMs]);
 
-  const sendToAgent = useCallback(async (target: Idea, action: "do" | "change" | "no", label: string, prompt = "", note = "") => {
+  const sendToAgent = useCallback(async (target: Idea, action: "do" | "change" | "no" | "ack", label: string, prompt = "", note = "") => {
     const activeMs = takePendingActiveMs(target.id, target.version);
     const response = await fetch("/api/ideas/action", {
       method: "POST",
@@ -552,7 +689,7 @@ export function Agency() {
       return next;
     });
     setMessage("");
-    const targetView = action === "no" ? view : "new";
+    const targetView = action === "no" || action === "ack" ? view : "new";
     const nextSelection = targetView === view
       ? nextCardAfterRemoval(target.id, visibleIdeas)
       : ideasForView(data.ideas, targetView, sortRef.current)[0] ?? null;
@@ -610,6 +747,16 @@ export function Agency() {
       setFeedbackSubmitting(false);
     }
   }, [active, feedbackSubmitting, jobInFlight, sendToAgent]);
+
+  const submitAcknowledge = useCallback(async () => {
+    if (!active || jobInFlight || feedbackSubmitting) return;
+    setFeedbackSubmitting(true);
+    try {
+      await sendToAgent(active, "ack", "Dismiss / ACK", "", "Useful suggestion; dismissed without requesting execution. Already handled or not needed now.");
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  }, [active, jobInFlight, feedbackSubmitting, sendToAgent]);
 
   const submitSkip = useCallback(async () => {
     if (!active || feedbackSubmitting) return;
@@ -831,8 +978,10 @@ export function Agency() {
       ) : active ? (
         <section className="radar-workspace">
           {jobInFlight && <span className="radar-working" role="status">Agency is working on this card</span>}
+          <JobResultNotice idea={activeLiveState} />
+          <SourceLink idea={activeLiveState} />
           <section className="radar-card-host">
-            <AgentCard idea={active} actionable={!jobInFlight} onAction={handleCardAction} onInteraction={(action, label) => recordCardInteraction(active, action, label)} />
+            <AgentCard idea={active} actionable={!jobInFlight && !jobBlocked && !jobReadyForReview} onAction={handleCardAction} onInteraction={(action, label) => recordCardInteraction(active, action, label)} />
           </section>
 
           <section className="radar-inline-change">
@@ -849,7 +998,7 @@ export function Agency() {
               }}
               placeholder={jobInFlight || feedbackSubmitting
                 ? "Agency is already changing this card."
-                : "Add context or say what to change… Enter to start typing, Enter sends, Shift+Enter adds a line"}
+                : "Add context or request a change…"}
             />
             <div className="radar-inline-actions">
               <button
@@ -860,6 +1009,13 @@ export function Agency() {
                 data-shortcut-hint="Skip · S"
                 onClick={() => void submitSkip()}
               ><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none"/></svg></button>
+              <button
+                className="is-ack radar-shortcut-hint"
+                disabled={jobInFlight || feedbackSubmitting}
+                aria-label="Dismiss and acknowledge this suggestion"
+                title="Useful, but already handled or not needed now. No work will be queued."
+                onClick={() => void submitAcknowledge()}
+              >Dismiss / ACK</button>
               <button
                 className="is-improve radar-shortcut-hint"
                 disabled={jobInFlight || feedbackSubmitting}
@@ -890,10 +1046,7 @@ export function Agency() {
 
       {!composer && message && <div className="radar-message" role="status">{message}</div>}
 
-      <footer className="radar-footer">
-        <i /> {data.jobs.running ? `${data.jobs.running} jobs running` : data.jobs.queued ? `${data.jobs.queued} queued for your coding agent` : "No queued work"}
-        {data.decisionMetrics.tracked > 0 && <> · you decide in {formatDuration(data.decisionMetrics.medianAcceptedActiveMs)} on average</>}
-      </footer>
+
     </main>
   );
 }

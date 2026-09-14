@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type Bucket = { do: number; change: number; no: number; parked: number; likedPoints: number; medianActiveMs: number | null; medianDoMs: number | null; decided: number; doRate: number | null };
+type Bucket = { do: number; change: number; no: number; ack: number; parked: number; likedPoints: number; medianActiveMs: number | null; medianDoMs: number | null; decided: number; doRate: number | null };
 type Stats = {
   days: number;
   total: Bucket & { donePoints: number; points: number };
   clusters: Array<Bucket & { id: string; label: string; hint: string; open: number; done: number; rejected: number; donePoints: number }>;
   categories: Array<{ name: string; do: number; change: number; no: number; decided: number; doRate: number }>;
-  days_series: Array<{ day: string; do: number; change: number; no: number; points: number }>;
-  recent: Array<{ ideaId: number; headline: string; action: "do" | "change" | "no"; activeMs: number | null; decidedAt: string; cluster: string }>;
+  days_series: Array<{ day: string; do: number; change: number; no: number; ack: number; points: number }>;
+  recent: Array<{ ideaId: number; headline: string; action: "do" | "change" | "no" | "ack"; activeMs: number | null; decidedAt: string; cluster: string }>;
 };
 
 const CLUSTER: Record<string, string> = { growth: "#c2410c", support: "#1d4ed8", fix: "#15803d", product: "#6d28d9" };
@@ -18,6 +18,7 @@ const ACTION: Record<string, { color: string; label: string }> = {
   do: { color: "#1f7a4d", label: "did" },
   change: { color: "#a3630b", label: "changed" },
   no: { color: "#b3261e", label: "skipped" },
+  ack: { color: "#64748b", label: "acknowledged" },
 };
 
 function seconds(ms: number | null) {
@@ -49,7 +50,7 @@ function PointsByDay({ rows }: { rows: Stats["days_series"] }) {
             <rect x={x} y={pad + h - bh} width={bw} height={Math.max(bh, r.points ? 2 : 0)} rx={4} fill={isToday ? "var(--accent)" : "var(--ink-3)"} fillOpacity={isToday ? 1 : 0.45} />
             {r.points > 0 && <text x={x + bw / 2} y={pad + h - bh - 6} textAnchor="middle" fontSize="12" fontWeight="700" fill="currentColor" style={{ fontVariantNumeric: "tabular-nums" }}>{r.points}</text>}
             <text x={x + bw / 2} y={pad + h + 18} textAnchor="middle" fontSize="11" fill="currentColor" fillOpacity=".6">{dayLabel(r.day)}</text>
-            <text x={x + bw / 2} y={pad + h + 34} textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity=".45">{r.do + r.change + r.no} decisions</text>
+            <text x={x + bw / 2} y={pad + h + 34} textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity=".45">{r.do + r.change + r.no + r.ack} decisions</text>
           </g>
         );
       })}
@@ -57,12 +58,13 @@ function PointsByDay({ rows }: { rows: Stats["days_series"] }) {
   );
 }
 
-function Split({ b }: { b: { do: number; change: number; no: number } }) {
-  const total = b.do + b.change + b.no || 1;
+function Split({ b }: { b: { do: number; change: number; no: number; ack?: number } }) {
+  const values = { ...b, ack: b.ack ?? 0 };
+  const total = b.do + b.change + b.no + values.ack || 1;
   return (
-    <div className="stats-split" role="img" aria-label={`${b.do} did, ${b.change} changed, ${b.no} skipped`}>
-      {(["do", "change", "no"] as const).map((k) => (
-        <span key={k} style={{ width: `${(100 * b[k]) / total}%`, background: ACTION[k].color }} title={`${ACTION[k].label} ${b[k]}`} />
+    <div className="stats-split" role="img" aria-label={`${b.do} did, ${b.change} changed, ${b.no} skipped, ${values.ack} acknowledged`}>
+      {(["do", "change", "no", "ack"] as const).map((k) => (
+        <span key={k} style={{ width: `${(100 * values[k]) / total}%`, background: ACTION[k].color }} title={`${ACTION[k].label} ${values[k]}`} />
       ))}
     </div>
   );
@@ -128,7 +130,7 @@ export default function StatsPage() {
             </div>
           ))}
         </div>
-        <p className="stats-legend">{(["do", "change", "no"] as const).map((k) => <span key={k}><i style={{ background: ACTION[k].color }} />{ACTION[k].label}</span>)}</p>
+        <p className="stats-legend">{(["do", "change", "no", "ack"] as const).map((k) => <span key={k}><i style={{ background: ACTION[k].color }} />{ACTION[k].label}</span>)}</p>
       </section>
 
       <section className="stats-block stats-two">

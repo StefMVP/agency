@@ -210,6 +210,11 @@ Cards show who is affected, the problem, draft or proposed outcome and exact act
 screenshots, short diagrams, SVG animations, messages, full colorful diffs or recorded demos.
 The body may vary; feedback and navigation stay consistent. New arrivals preserve the selected card.
 
+Dismiss / ACK records a useful suggestion that needs no action now (already handled or not now).
+It removes the card from the active feed, stores `ack` feedback and `acknowledged` status, and creates
+no job or completion credit. It is separate from Skip (`no` / `rejected`). Acknowledgment is disabled
+while a job for the card is queued or running. It does not set a reminder or assume the work is done.
+
 A successful decision click queues work and advances the feed. View-only Open buttons stay on the
 card. A queued approval is not yet a completed ticket: the agent must execute and verify it.
 Auto-improve and Skip do not count as Done. The host supplies those two card controls;
