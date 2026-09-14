@@ -37,3 +37,9 @@
 /public/media/
 /public/screenshots/
 /public/videos/
+
+# Local verification output; npm dependencies are pinned in package-lock.json.
+/.playwright-cli/
+/reports/
+/screenshots/
+/deno.lock
